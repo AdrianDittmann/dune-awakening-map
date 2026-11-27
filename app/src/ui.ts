@@ -123,6 +123,7 @@ export class UI {
     root.querySelectorAll<HTMLInputElement>('input[data-overlay]').forEach((el) => el.addEventListener('change', () => hooks.toggleOverlay(el.dataset.overlay!, el.checked, 0.75)));
     root.querySelector<HTMLInputElement>('input[data-grid]')?.addEventListener('change', (e) => hooks.toggleGrid((e.target as HTMLInputElement).checked));
     const ml = root.querySelector('.maplabels')!;
+    ml.classList.toggle('om', data.world === 'om');
     for (const l of data.labels ?? []) {
       const el = document.createElement('span');
       el.textContent = l.text;
@@ -333,7 +334,8 @@ export class UI {
       if (r.near === false) parts.push('spawns with nobody near');
       lines.push(`<dt>Spawns</dt><dd>${parts.join(' · ')}</dd>`);
     }
-    this.open(this.icon(p.icon ?? L.icon, 22), title, meta, lines);
+    const lead = p.desc || p.img ? `<div class="lead">${p.img ? `<img src="${esc(p.img)}" alt="">` : ''}${p.desc ? `<p>${esc(p.desc)}</p>` : ''}</div>` : '';
+    this.open(this.icon(p.icon ?? L.icon, 22), title, meta, lines, lead);
   }
 
   showPin(x: number, y: number, h: number) {
@@ -358,8 +360,8 @@ export class UI {
     return lines;
   }
 
-  private open(icon: string, title: string, meta: string, lines: string[]) {
-    this.card.innerHTML = `<button class="x" aria-label="Close">×</button><h3>${icon}<span>${esc(title)}</span></h3><div class="meta">${esc(meta)}</div><dl>${lines.join('')}</dl>`;
+  private open(icon: string, title: string, meta: string, lines: string[], lead = '') {
+    this.card.innerHTML = `<button class="x" aria-label="Close">×</button><h3>${icon}<span>${esc(title)}</span></h3><div class="meta">${esc(meta)}</div>${lead}<dl>${lines.join('')}</dl>`;
     this.card.hidden = false;
   }
 

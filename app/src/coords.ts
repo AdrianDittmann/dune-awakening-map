@@ -36,6 +36,23 @@ export function parseGrid(q: string): [number, number] | null {
   return [(col + sx / 100) * SECTOR_M, (row + sy / 100) * SECTOR_M];
 }
 
+interface Patch { x0: number; y0: number; nx: number; ny: number; o: number; b: number }
+interface Land { step: number; fixed: Patch | null; sets: Record<string, Patch>; raw: Uint16Array }
+const lands = new Map<string, Promise<Land>>();
+
+function land(url: string): Promise<Land> {
+  let p = lands.get(url);
+  if (!p) {
+    p = json<{ step: number; fixed: Patch | null; sets: Record<string, Patch>; b64: string }>(url).then((t) => {
+      const b = fromB64(t.b64);
+      return { step: t.step, fixed: t.fixed, sets: t.sets, raw: new Uint16Array(b.buffer, b.byteOffset, b.byteLength / 2) };
+    });
+    lands.set(url, p);
+    p.catch(() => lands.delete(url));
+  }
+  return p;
+}
+
 interface Library { names: string[]; n: number; step: number; raw: Uint16Array }
 const libraries = new Map<string, Promise<Library>>();
 
@@ -63,8 +80,8 @@ export class Terrain {
     return new Terrain(h, n, step);
   }
 
-  static async compose(url: string, grid: number[], off: number[], tiles: number): Promise<Terrain> {
-    const t = await library(url), raw = t.raw;
+  static async compose(url: string, grid: number[], off: number[], tiles: number, landUrl?: string, places?: number[][]): Promise<Terrain> {
+    const [t, L] = await Promise.all([library(url), landUrl && places ? land(landUrl) : Promise.resolve(null)]), raw = t.raw;
     const m = t.n - 1, n = tiles * m + 1, h = new Float32Array(n * n), per = t.n * t.n;
     const at = (p: number, r: number, c: number) => (raw[p * per + r * t.n + c] - 32768) / 128;
     for (const raised of [false, true]) for (let ty = 0; ty < tiles; ty++) for (let tx = 0; tx < tiles; tx++) {
@@ -73,7 +90,32 @@ export class Terrain {
       for (let r = 0; r < t.n; r++) for (let c = 0; c < t.n; c++) h[(ty * m + r) * n + tx * m + c] = at(grid[k], r, c) + off[k];
     }
     Terrain.shieldRamp(h, n, m, tiles, off, t.step, at, Array.from({ length: 16 }, (_, i) => t.names.indexOf(`SoS_Arrakis_DunesLow04_x${i % 4}_y${i >> 2}`)));
+    if (L && places) {
+      if (L.fixed) Terrain.patch(h, n, t.step, L, L.fixed, 0, 0, 0, 0);
+      for (const [s, x, y, z, yaw] of places) { const P = L.sets[s]; if (P) Terrain.patch(h, n, t.step, L, P, x, y, z, yaw); }
+    }
     return new Terrain(h, n, t.step);
+  }
+
+  private static patch(h: Float32Array, n: number, step: number, L: Land, P: Patch, X: number, Y: number, Z: number, yaw: number) {
+    const a = (yaw * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a), u = L.raw, ps = L.step;
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const lx of [P.x0, P.x0 + (P.nx - 1) * ps]) for (const ly of [P.y0, P.y0 + (P.ny - 1) * ps]) {
+      const wx = X + lx * c - ly * s, wy = Y + lx * s + ly * c;
+      x0 = Math.min(x0, wx); x1 = Math.max(x1, wx); y0 = Math.min(y0, wy); y1 = Math.max(y1, wy);
+    }
+    const c0 = Math.max(0, Math.floor(x0 / step)), c1 = Math.min(n - 1, Math.ceil(x1 / step));
+    const r0 = Math.max(0, Math.floor(y0 / step)), r1 = Math.min(n - 1, Math.ceil(y1 / step));
+    for (let r = r0; r <= r1; r++) for (let col = c0; col <= c1; col++) {
+      const dx = col * step - X, dy = r * step - Y;
+      const fx = (dx * c + dy * s - P.x0) / ps, fy = (-dx * s + dy * c - P.y0) / ps;
+      if (fx < 0 || fy < 0 || fx > P.nx - 1 || fy > P.ny - 1) continue;
+      const ix = Math.min(Math.floor(fx), P.nx - 2), iy = Math.min(Math.floor(fy), P.ny - 2), tx = fx - ix, ty = fy - iy;
+      const i = P.o + iy * P.nx + ix, q00 = u[i], q10 = u[i + 1], q01 = u[i + P.nx], q11 = u[i + P.nx + 1];
+      if (!q00 || !q10 || !q01 || !q11) continue;
+      const v = P.b + ((q00 * (1 - tx) + q10 * tx) * (1 - ty) + (q01 * (1 - tx) + q11 * tx) * ty) / 32 + Z, j = r * n + col;
+      if (v > h[j]) h[j] = v;
+    }
   }
 
   private static shieldRamp(h: Float32Array, n: number, m: number, tiles: number, off: number[], step: number, at: (p: number, r: number, c: number) => number, low: number[]) {

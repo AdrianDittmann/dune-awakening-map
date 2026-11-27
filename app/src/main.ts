@@ -69,6 +69,8 @@ async function loadHagga(id: WorldId): Promise<Loaded> {
     };
     nodes.set(rid, [pts(v.b64_fixed), pts(v.b64_shared, v.b64_chance ? fromB64(v.b64_chance) : undefined)]);
   }
+  for (const L of data.layers) for (const p of L.points) p.g = terrain.at(p.x, p.y);
+  for (const r of data.resources) for (const p of r.spots) p.z = p.g = terrain.at(p.x, p.y);
   return { id, data, terrain, all: [...data.layers, ...resourceLayers(data, nodes)], src: fileTiles(data.tiles.ext) };
 }
 
@@ -80,7 +82,7 @@ async function loadDeep(id: WorldId): Promise<Loaded> {
   data.index = index;
   data.live = Date.now() < LIVE.since + WEEK ? LIVE.layout : undefined;
   const t = data.terrain;
-  const terrain = await Terrain.compose(`./${t.file}`, t.grid!, t.off!, t.tiles!);
+  const terrain = await Terrain.compose(`./${t.file}`, t.grid!, t.off!, t.tiles!, t.land ? './data/dd/land.json' : undefined, t.land);
   const nd = data.nodes!, groups: Record<string, Uint16Array> = { Minerals: u16(nd.Minerals), Scrap: u16(nd.Scrap) };
   const nodes = new Map<string, [Point[], Point[]]>();
   for (const r of data.resources) {
@@ -125,7 +127,7 @@ function world(id: WorldId): Promise<Loaded> {
 }
 
 function firstView(id: WorldId): string[] {
-  if (id.w === 'dd') return [`./data/dd/layout_${n2(id.layout)}.json`, './data/dd/index.json', './data/dd/terrain.json', ...bundleTiles(`data/dd/tiles_${n2(id.layout)}`).files(3)];
+  if (id.w === 'dd') return [`./data/dd/layout_${n2(id.layout)}.json`, './data/dd/index.json', './data/dd/terrain.json', './data/dd/land.json', ...bundleTiles(`data/dd/tiles_${n2(id.layout)}`).files(3)];
   if (id.w === 'om') return ['./data/om/map.json', ...bundleTiles('data/om/tiles_00').files(3)];
   return ['./data/map.json', './data/terrain_8m.json', './data/nodes.json', ...fileTiles('webp').files(3)];
 }

@@ -15,6 +15,8 @@ export interface Point {
   to?: string;
   from?: string;
   pvp?: boolean;
+  desc?: string;
+  img?: string;
   dest?: string;
 }
 
@@ -76,7 +78,7 @@ export interface MapData {
   live?: number;
   size_m: number;
   tiles: { levels: number; tile: number; ext: string; bundle?: string };
-  terrain: { file: string; shape: [number, number]; step_m: number; tiles?: number; grid?: number[]; off?: number[] };
+  terrain: { file: string; shape: [number, number]; step_m: number; tiles?: number; grid?: number[]; off?: number[]; land?: number[][] };
   nodes?: DDNodes;
   index?: Record<string, Record<string, string[]>>;
   labels?: { text: string; x: number; y: number; big?: boolean }[];
