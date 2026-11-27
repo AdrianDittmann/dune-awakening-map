@@ -1,49 +1,19 @@
 # Dune: Awakening Map
 
-Interactive map of Dune: Awakening built from the game's own files: the Hagga Basin, the Deep Desert in all twelve weekly layouts, and the Overland map.
+Interactive map of Dune: Awakening built from the game files, covering the Hagga Basin, all twelve Deep Desert layouts and the Overland.
+
+Places carry the game's own icons and names. Resource spots show what can spawn there and how likely it is, Titanium and Stravidium included. Crashed ships and spice fields show their spawn sites and rules. The Hagga Basin and the Deep Desert have a 3D view with the game's rocks, buildings and wrecks. Search finds places, resources, grid references and coordinates, and a tracker counts the 10,000 of each resource for the harvesting achievement.
 
 ![Hagga Basin, Deep Desert and Overland](docs/maps.webp)
 
-## Features
-
-- Base maps rendered from the game's terrain and art meshes. A 3D view of the Hagga Basin and the Deep Desert with the game's rocks, buildings and wrecks.
-- Outposts, camps, caves, shipwrecks, testing stations, trading posts, taxis and travel gates, with the game's icons and names.
-- Resource zones and node spots. Shared spots show the chance of each resource, including Titanium and Stravidium for each Deep Desert layout.
-- Spawn sites and rules for crashed ships and spice fields.
-- The game's sector grid with grid references. Search by place, resource, grid reference or metres.
-- The Deep Desert layout that is live this week is marked. Searching for sectors lists the layouts with a testing station, wreck or cave there.
-- A tracker for the 10,000-of-each harvesting achievement, saved in the browser.
-
-## Run
-
-**Windows:** download `Dune-Awakening-Map-windows.zip` from [Releases](../../releases), extract it and run `Dune Awakening Map.exe`. It serves the map on `127.0.0.1:47816` and opens it in the default browser. It stops 10 minutes after the map tab is closed.
-
-**Other systems:** serve the `app` folder from the zip with any static web server and open the address in a browser:
-
-```
-python3 -m http.server 47816 --bind 127.0.0.1 --directory app
-```
+- Windows: download [Dune-Awakening-Map-windows.zip](https://github.com/AdrianDittmann/dune-awakening-map/releases/latest/download/Dune-Awakening-Map-windows.zip), extract it and run `Dune Awakening Map.exe`. The map opens in the default browser, and the program stops 10 minutes after the tab is closed. It is not code-signed: if SmartScreen stops it, choose More info, then Run anyway.
+- Other systems: serve the zip's `app` folder with any static web server, for example `python3 -m http.server 47816 --bind 127.0.0.1 --directory app`, and open `http://127.0.0.1:47816`.
+- The app runs in the browser and does not touch the game. The Deep Desert layout of the current week is marked from [`live.json`](live.json), which holds its number (0-11, shown as 1-12) and the time it went live.
 
 ## Build
 
-Requires Node.js 20 or later, pnpm and Rust.
+Requires Node.js 20 or later, pnpm and Rust. The map data is generated from the game files and is not in the repository: copy `app/data` and `app/tiles` from the release zip into `app/public/`, then run `pnpm install` and `pnpm dev` in `app`. On Windows, `scripts/package.ps1` builds the web app and the launcher into `release/Dune-Awakening-Map-windows.zip`.
 
-The map data (`app/public/data`, `app/public/tiles`) is generated from the game files and is not part of the repository. Copy `app/data` and `app/tiles` from a release zip into `app/public/`, then:
+## Legal
 
-```
-cd app
-pnpm install
-pnpm dev
-```
-
-`scripts/package.ps1` builds the web app and the launcher and writes `release/Dune-Awakening-Map-windows.zip`.
-
-## Weekly layout
-
-`live.json` names the Deep Desert layout of the current week (`layout` 0-11 is button 1-12 in the app) and the time it went live. The app reads it at start.
-
-## Data
-
-Extracted read-only from the installed game files. The game process is never read or modified.
-
-Unofficial fan project, not affiliated with or endorsed by Funcom. Dune: Awakening is a trademark of Funcom. Dune is a trademark of Herbert Properties LLC. The game content shown on the map belongs to its owners. The code is released under the MIT License.
+Unofficial fan project, not affiliated with or endorsed by Funcom or Legendary. Dune and Dune: Awakening are registered trademarks of Legendary. The game content shown on the map belongs to its owners. The code is released under the MIT License.
